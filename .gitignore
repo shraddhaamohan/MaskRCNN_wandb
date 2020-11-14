@@ -1,0 +1,17 @@
+.ipynb_checkpoints/
+__pycache__/
+mask_rcnn_coco.h5
+.idea/
+
+wandb
+wandb-debug.log
+
+*.h5
+
+data/train/
+data/val/
+mask_rcnn.egg-info/
+
+build/
+
+dist/

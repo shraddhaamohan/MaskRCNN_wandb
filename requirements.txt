@@ -1,0 +1,14 @@
+cython
+numpy==1.17.0
+scipy==1.2.2
+Pillow
+matplotlib
+scikit-image
+tensorflow==1.13.1
+keras==2.1.6
+opencv-python
+h5py==2.9.0
+imgaug
+IPython[all]
+pycocotools
+wandb
