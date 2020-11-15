@@ -93,7 +93,7 @@ class FoodConfig(Config):
     NUM_CLASSES = 1 + 5  # annotations-small.json has 10 classes
 
     # Halve STEPS_PER_EPOCH to speed up training time for the sake of demonstration
-    STEPS_PER_EPOCH = 10
+    STEPS_PER_EPOCH = 300
 
     BACKBONE = "resnet50"
     # MODEL TUNING
