@@ -505,8 +505,10 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", model_path)
-    model.load_weights(model_path, by_name=True, exclude=[ "mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-
+    if args.command =="train":
+          model.load_weights(model_path, by_name=True, exclude=[ "mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+    else:
+        model.load_weights(model_path, by_name=True)
     # Train or evaluate
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
@@ -546,6 +548,7 @@ if __name__ == '__main__':
                     epochs=5,
                     layers='all',
                     augmentation=augmentation)
+        run.finish()
 
     elif args.command == "evaluate":
         print("Running COCO evaluation on val images.")
