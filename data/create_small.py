@@ -1,8 +1,12 @@
 import json
-def create_data_subset(data_dir):
+def create_data_subset(data_dir,cats):
   with open(data_dir+"/annotations.json") as f:
     data = json.load(f)
-  data_subset_cats = data["categories"][5:10]
+  data_subset_cats=[]
+  for x in data["categories"]:
+    if x["name"] in cats:
+      data_subset_cats.append(x)
+      
   reqd_cats = [x["id"] for x in data_subset_cats]
   data_subset_anns = []
   reqd_imgs = set()
@@ -22,5 +26,5 @@ def create_data_subset(data_dir):
 
   with open(data_dir+"/annotations-small.json","w") as f:
     json.dump(reqd_dict, f)
-create_data_subset("./train")
-create_data_subset("./val")
+create_data_subset("./train",cats=["water","grapes","tomato","banana","carrot","bread-white","butter","coffee-with-caffeine","egg","apple","salad-leaf-salad-green","bread-wholemeal"])
+create_data_subset("./val",cats=["water","grapes","tomato","banana","carrot","bread-white","butter","coffee-with-caffeine","egg","apple","salad-leaf-salad-green","bread-wholemeal"])
