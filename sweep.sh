@@ -1,7 +1,7 @@
 #!/bin/bash
 
 declare -a backbones=("resnet50" "resnet101")
-declare -a gradient_clip_norms=(5 10)
+declare -a gradient_clip_norms=(5)
 declare -a learning_rates=(0.001 0.0001)
 declare -a weight_decays=(0.0001)
 
