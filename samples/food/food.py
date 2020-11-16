@@ -94,7 +94,6 @@ class FoodConfig(Config):
 
     # Halve STEPS_PER_EPOCH to speed up training time for the sake of demonstration
     STEPS_PER_EPOCH = 750
-    USE_MINI_MASK=False
     LEARNING_RATE=0.0001
 
 
