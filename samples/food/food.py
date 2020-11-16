@@ -162,8 +162,6 @@ class ImageCallback(keras.callbacks.Callback):
             self.dataset_val, _config, image_id, use_mini_mask=False)
         _, ax = plt.subplots(figsize=(16, 16)) 
         
-        self.load_curr_model();
-        
         # Run detection
         results = self.inf_model.detect([original_image])
 
@@ -176,6 +174,7 @@ class ImageCallback(keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs):
         print("Uploading images to wandb...")
+        self.load_curr_model();
         predicted_images = [self.predict_image(i) for i in self.image_ids]
         wandb.log({"img_segmentations":[
             wandb.Image(
@@ -361,7 +360,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
 
             result = {
                 "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "coco"),
+                "category_id": dataset.get_source_class_id(class_id, "food-challenge"),
                 "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
                 "score": score,
                 "segmentation": maskUtils.encode(np.asfortranarray(mask))
