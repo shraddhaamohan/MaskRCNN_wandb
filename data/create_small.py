@@ -6,8 +6,11 @@ def create_data_subset(data_dir,cats):
   for x in data["categories"]:
     if x["name"] in cats:
       data_subset_cats.append(x)
-      
+
   reqd_cats = [x["id"] for x in data_subset_cats]
+  print("INFO: Cats are: ",[x["name"] for x in data_subset_cats])
+  print("INFO: CatIDs are: ",reqd_cats)
+  print("INFO: len of cats:",len(reqd_cats))
   data_subset_anns = []
   reqd_imgs = set()
   for x in data["annotations"]:

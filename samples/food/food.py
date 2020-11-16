@@ -90,11 +90,11 @@ class FoodConfig(Config):
     GPU_COUNT = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 5  # annotations-small.json has 10 classes
+    NUM_CLASSES = 1 + 12  # annotations-small.json has 12 classes
 
     # Halve STEPS_PER_EPOCH to speed up training time for the sake of demonstration
     STEPS_PER_EPOCH = 750
-
+    USE_MINI_MASK=False
     LEARNING_RATE=0.0001
 
 
