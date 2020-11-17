@@ -10,6 +10,7 @@ Written by Waleed Abdulla
 
 Usage: import the module (see Jupyter notebooks for examples), or run from
        the command line as such:
+    wandb init
 
     # Train a new model starting from pre-trained COCO weights
     python3 coco.py train --dataset=/path/to/coco/ --model=coco
@@ -59,6 +60,9 @@ sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn import visualize
 from mrcnn.config import Config
 from mrcnn.model import load_image_gt
+from mrcnn.dataset import FoodDataset
+from mrcnn.evaluate import build_coco_results, evaluate_coco
+
 from mrcnn import model as modellib, utils
 
 # Path to trained weights file
@@ -84,20 +88,21 @@ class FoodConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 5
 
     # Uncomment to train on 8 GPUs (default is 1)
     GPU_COUNT = 1
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 12  # annotations-small.json has 12 classes
+    NUM_CLASSES = 1 + 40  # annotations-small.json has 12 classes
 
     # Halve STEPS_PER_EPOCH to speed up training time for the sake of demonstration
-    STEPS_PER_EPOCH = 750
-    LEARNING_RATE=0.0001
+    STEPS_PER_EPOCH = 1000
+    VALIDATION_STEPS=50
 
+    IMAGE_MAX_DIM=256
+    IMAGE_MIN_DIM=256
 
-    BACKBONE = "resnet50"
     # MODEL TUNING
     if os.environ.get('BACKBONE'):
         BACKBONE = os.environ.get('BACKBONE')
@@ -186,238 +191,236 @@ class PerformanceCallback(keras.callbacks.Callback):
         self.run = run
     def on_epoch_end(self, epoch, logs):
         print("Uploading metrics to wandb...")
-        #self.run.history.row.update(logs)
         wandb.log(logs)
-        #self.run.history.add()
 
 ############################################################
 #  Dataset
 ############################################################
 
-class FoodDataset(utils.Dataset):
-    def load_dataset(self, dataset_dir, load_small=False, return_coco=True):
-        """ Loads dataset released for the AICrowd Food Challenge
-            Params:
-                - dataset_dir : root directory of the dataset (can point to the train/val folder)
-                - load_small : Boolean value which signals if the annotations for all the images need to be loaded into the memory,
-                               or if only a small subset of the same should be loaded into memory
-        """
-        self.load_small = load_small
-        if self.load_small:
-            annotation_path = os.path.join(dataset_dir, "annotations-small.json")
-        else:
-            annotation_path = os.path.join(dataset_dir, "annotations.json")
+# class FoodDataset(utils.Dataset):
+#     def load_dataset(self, dataset_dir, load_small=False, return_coco=True):
+#         """ Loads dataset released for the AICrowd Food Challenge
+#             Params:
+#                 - dataset_dir : root directory of the dataset (can point to the train/val folder)
+#                 - load_small : Boolean value which signals if the annotations for all the images need to be loaded into the memory,
+#                                or if only a small subset of the same should be loaded into memory
+#         """
+#         self.load_small = load_small
+#         if self.load_small:
+#             annotation_path = os.path.join(dataset_dir, "annotations-small.json")
+#         else:
+#             annotation_path = os.path.join(dataset_dir, "annotations.json")
 
-        image_dir = os.path.join(dataset_dir, "images")
-        print("Annotation Path ", annotation_path)
-        print("Image Dir ", image_dir)
-        assert os.path.exists(annotation_path) and os.path.exists(image_dir)
+#         image_dir = os.path.join(dataset_dir, "images")
+#         print("Annotation Path ", annotation_path)
+#         print("Image Dir ", image_dir)
+#         assert os.path.exists(annotation_path) and os.path.exists(image_dir)
 
-        self.coco = COCO(annotation_path)
-        self.image_dir = image_dir
+#         self.coco = COCO(annotation_path)
+#         self.image_dir = image_dir
 
-        # Load all classes (Only Building in this version)
-        classIds = self.coco.getCatIds()
+#         # Load all classes (Only Building in this version)
+#         classIds = self.coco.getCatIds()
 
-        # Load all images
-        image_ids = list(self.coco.imgs.keys())
+#         # Load all images
+#         image_ids = list(self.coco.imgs.keys())
 
-        # register classes
-        for _class_id in classIds:
-            self.add_class(
-                "food-challenge",
-                _class_id,
-                self.coco.loadCats(_class_id)[0]["name"],
-            )
+#         # register classes
+#         for _class_id in classIds:
+#             self.add_class(
+#                 "food-challenge",
+#                 _class_id,
+#                 self.coco.loadCats(_class_id)[0]["name"],
+#             )
 
-        # Register Images
-        for _img_id in image_ids:
-            assert os.path.exists(
-                os.path.join(image_dir, self.coco.imgs[_img_id]["file_name"])
-            )
-            self.add_image(
-                "food-challenge",
-                image_id=_img_id,
-                path=os.path.join(image_dir, self.coco.imgs[_img_id]["file_name"]),
-                width=self.coco.imgs[_img_id]["width"],
-                height=self.coco.imgs[_img_id]["height"],
-                annotations=self.coco.loadAnns(
-                    self.coco.getAnnIds(imgIds=[_img_id], catIds=classIds, iscrowd=None)
-                ),
-            )
+#         # Register Images
+#         for _img_id in image_ids:
+#             assert os.path.exists(
+#                 os.path.join(image_dir, self.coco.imgs[_img_id]["file_name"])
+#             )
+#             self.add_image(
+#                 "food-challenge",
+#                 image_id=_img_id,
+#                 path=os.path.join(image_dir, self.coco.imgs[_img_id]["file_name"]),
+#                 width=self.coco.imgs[_img_id]["width"],
+#                 height=self.coco.imgs[_img_id]["height"],
+#                 annotations=self.coco.loadAnns(
+#                     self.coco.getAnnIds(imgIds=[_img_id], catIds=classIds, iscrowd=None)
+#                 ),
+#             )
 
-        if return_coco:
-            return self.coco
+#         if return_coco:
+#             return self.coco
 
-    def load_mask(self, image_id):
-        """Load instance masks for the given image.
+#     def load_mask(self, image_id):
+#         """Load instance masks for the given image.
 
-        Different datasets use different ways to store masks. This
-        function converts the different mask format to one format
-        in the form of a bitmap [height, width, instances].
+#         Different datasets use different ways to store masks. This
+#         function converts the different mask format to one format
+#         in the form of a bitmap [height, width, instances].
 
-        Returns:
-        masks: A bool array of shape [height, width, instance count] with
-            one mask per instance.
-        class_ids: a 1D array of class IDs of the instance masks.
-        """
-        # If not a COCO image, delegate to parent class.
+#         Returns:
+#         masks: A bool array of shape [height, width, instance count] with
+#             one mask per instance.
+#         class_ids: a 1D array of class IDs of the instance masks.
+#         """
+#         # If not a COCO image, delegate to parent class.
         
-        image_info = self.image_info[image_id]
-        assert image_info["source"] == "food-challenge"
+#         image_info = self.image_info[image_id]
+#         assert image_info["source"] == "food-challenge"
 
-        instance_masks = []
-        class_ids = []
-        annotations = self.image_info[image_id]["annotations"]
-        # Build mask of shape [height, width, instance_count] and list
-        # of class IDs that correspond to each channel of the mask.
-        for annotation in annotations:
-            class_id = self.map_source_class_id(
-                "food-challenge.{}".format(annotation["category_id"])
-            )
-            if class_id:
-                m = self.annToMask(
-                    annotation, image_info["height"], image_info["width"]
-                )
-                # Some objects are so small that they're less than 1 pixel area
-                # and end up rounded out. Skip those objects.
-                if m.max() < 1:
-                    continue
+#         instance_masks = []
+#         class_ids = []
+#         annotations = self.image_info[image_id]["annotations"]
+#         # Build mask of shape [height, width, instance_count] and list
+#         # of class IDs that correspond to each channel of the mask.
+#         for annotation in annotations:
+#             class_id = self.map_source_class_id(
+#                 "food-challenge.{}".format(annotation["category_id"])
+#             )
+#             if class_id:
+#                 m = self.annToMask(
+#                     annotation, image_info["height"], image_info["width"]
+#                 )
+#                 # Some objects are so small that they're less than 1 pixel area
+#                 # and end up rounded out. Skip those objects.
+#                 if m.max() < 1:
+#                     continue
 
-                # Ignore the notion of "is_crowd" as specified in the coco format
-                # as we donot have the said annotation in the current version of the dataset
+#                 # Ignore the notion of "is_crowd" as specified in the coco format
+#                 # as we donot have the said annotation in the current version of the dataset
 
-                instance_masks.append(m)
-                class_ids.append(class_id)
-        # Pack instance masks into an array
-        if class_ids:
-            mask = np.stack(instance_masks, axis=2)
-            class_ids = np.array(class_ids, dtype=np.int32)
-            return mask, class_ids
-        else:
-            # Call super class to return an empty mask
-            return super(FoodDataset, self).load_mask(image_id)
+#                 instance_masks.append(m)
+#                 class_ids.append(class_id)
+#         # Pack instance masks into an array
+#         if class_ids:
+#             mask = np.stack(instance_masks, axis=2)
+#             class_ids = np.array(class_ids, dtype=np.int32)
+#             return mask, class_ids
+#         else:
+#             # Call super class to return an empty mask
+#             return super(FoodDataset, self).load_mask(image_id)
 
-    def image_reference(self, image_id):
-        """Return a reference for a particular image
+#     def image_reference(self, image_id):
+#         """Return a reference for a particular image
 
-            Ideally you this function is supposed to return a URL
-            but in this case, we will simply return the image_id
-        """
-        return "food-challenge::{}".format(image_id)
+#             Ideally you this function is supposed to return a URL
+#             but in this case, we will simply return the image_id
+#         """
+#         return "food-challenge::{}".format(image_id)
 
-    # The following two functions are from pycocotools with a few changes.
+#     # The following two functions are from pycocotools with a few changes.
 
-    def annToRLE(self, ann, height, width):
-        """
-        Convert annotation which can be polygons, uncompressed RLE to RLE.
-        :return: binary mask (numpy 2D array)
-        """
-        segm = ann['segmentation']
-        if isinstance(segm, list):
-            # polygon -- a single object might consist of multiple parts
-            # we merge all parts into one mask rle code
-            rles = maskUtils.frPyObjects(segm, height, width)
-            rle = maskUtils.merge(rles)
-        elif isinstance(segm['counts'], list):
-            # uncompressed RLE
-            rle = maskUtils.frPyObjects(segm, height, width)
-        else:
-            # rle
-            rle = ann['segmentation']
-        return rle
+#     def annToRLE(self, ann, height, width):
+#         """
+#         Convert annotation which can be polygons, uncompressed RLE to RLE.
+#         :return: binary mask (numpy 2D array)
+#         """
+#         segm = ann['segmentation']
+#         if isinstance(segm, list):
+#             # polygon -- a single object might consist of multiple parts
+#             # we merge all parts into one mask rle code
+#             rles = maskUtils.frPyObjects(segm, height, width)
+#             rle = maskUtils.merge(rles)
+#         elif isinstance(segm['counts'], list):
+#             # uncompressed RLE
+#             rle = maskUtils.frPyObjects(segm, height, width)
+#         else:
+#             # rle
+#             rle = ann['segmentation']
+#         return rle
 
-    def annToMask(self, ann, height, width):
-        """
-        Convert annotation which can be polygons, uncompressed RLE, or RLE to binary mask.
-        :return: binary mask (numpy 2D array)
-        """
-        rle = self.annToRLE(ann, height, width)
-        m = maskUtils.decode(rle)
-        return m
+#     def annToMask(self, ann, height, width):
+#         """
+#         Convert annotation which can be polygons, uncompressed RLE, or RLE to binary mask.
+#         :return: binary mask (numpy 2D array)
+#         """
+#         rle = self.annToRLE(ann, height, width)
+#         m = maskUtils.decode(rle)
+#         return m
 
 
 ############################################################
 #  COCO Evaluation
 ############################################################
 
-def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
-    """Arrange resutls to match COCO specs in http://cocodataset.org/#format
-    """
-    # If no results, return an empty list
-    if rois is None:
-        return []
+# def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
+#     """Arrange resutls to match COCO specs in http://cocodataset.org/#format
+#     """
+#     # If no results, return an empty list
+#     if rois is None:
+#         return []
 
-    results = []
-    for image_id in image_ids:
-        # Loop through detections
-        for i in range(rois.shape[0]):
-            class_id = class_ids[i]
-            score = scores[i]
-            bbox = np.around(rois[i], 1)
-            mask = masks[:, :, i]
+#     results = []
+#     for image_id in image_ids:
+#         # Loop through detections
+#         for i in range(rois.shape[0]):
+#             class_id = class_ids[i]
+#             score = scores[i]
+#             bbox = np.around(rois[i], 1)
+#             mask = masks[:, :, i]
 
-            result = {
-                "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "food-challenge"),
-                "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
-                "score": score,
-                "segmentation": maskUtils.encode(np.asfortranarray(mask))
-            }
-            results.append(result)
-    return results
+#             result = {
+#                 "image_id": image_id,
+#                 "category_id": dataset.get_source_class_id(class_id, "food-challenge"),
+#                 "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
+#                 "score": score,
+#                 "segmentation": maskUtils.encode(np.asfortranarray(mask))
+#             }
+#             results.append(result)
+#     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="segm", limit=0, image_ids=None):
-    """Runs official COCO evaluation.
-    dataset: A Dataset object with valiadtion data
-    eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
-    limit: if not 0, it's the number of images to use for evaluation
-    """
-    # Pick COCO images from the dataset
-    image_ids = image_ids or dataset.image_ids
+# def evaluate_coco(model, dataset, coco, eval_type="segm", limit=0, image_ids=None):
+#     """Runs official COCO evaluation.
+#     dataset: A Dataset object with valiadtion data
+#     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
+#     limit: if not 0, it's the number of images to use for evaluation
+#     """
+#     # Pick COCO images from the dataset
+#     image_ids = image_ids or dataset.image_ids
 
-    # Limit to a subset
-    if limit:
-        image_ids = image_ids[:limit]
+#     # Limit to a subset
+#     if limit:
+#         image_ids = image_ids[:limit]
 
-    # Get corresponding COCO image IDs.
-    coco_image_ids = [dataset.image_info[id]["id"] for id in image_ids]
+#     # Get corresponding COCO image IDs.
+#     coco_image_ids = [dataset.image_info[id]["id"] for id in image_ids]
 
-    t_prediction = 0
-    t_start = time.time()
+#     t_prediction = 0
+#     t_start = time.time()
 
-    results = []
-    for i, image_id in enumerate(image_ids):
-        # Load image
-        image = dataset.load_image(image_id)
+#     results = []
+#     for i, image_id in enumerate(image_ids):
+#         # Load image
+#         image = dataset.load_image(image_id)
 
-        # Run detection
-        t = time.time()
-        r = model.detect([image], verbose=0)[0]
-        t_prediction += (time.time() - t)
+#         # Run detection
+#         t = time.time()
+#         r = model.detect([image], verbose=0)[0]
+#         t_prediction += (time.time() - t)
 
-        # Convert results to COCO format
-        # Cast masks to uint8 because COCO tools errors out on bool
-        image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
-                                           r["rois"], r["class_ids"],
-                                           r["scores"],
-                                           r["masks"].astype(np.uint8))
-        results.extend(image_results)
+#         # Convert results to COCO format
+#         # Cast masks to uint8 because COCO tools errors out on bool
+#         image_results = build_coco_results(dataset, coco_image_ids[i:i + 1],
+#                                            r["rois"], r["class_ids"],
+#                                            r["scores"],
+#                                            r["masks"].astype(np.uint8))
+#         results.extend(image_results)
 
-    # Load results. This modifies results with additional attributes.
-    coco_results = coco.loadRes(results)
+#     # Load results. This modifies results with additional attributes.
+#     coco_results = coco.loadRes(results)
 
-    # Evaluate
-    cocoEval = COCOeval(coco, coco_results, eval_type)
-    cocoEval.params.imgIds = coco_image_ids
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    cocoEval.summarize()
+#     # Evaluate
+#     cocoEval = COCOeval(coco, coco_results, eval_type)
+#     cocoEval.params.imgIds = coco_image_ids
+#     cocoEval.evaluate()
+#     cocoEval.accumulate()
+#     cocoEval.summarize()
 
-    print("Prediction time: {}. Average {}/image".format(
-        t_prediction, t_prediction / len(image_ids)))
-    print("Total time: ", time.time() - t_start)
+#     print("Prediction time: {}. Average {}/image".format(
+#         t_prediction, t_prediction / len(image_ids)))
+#     print("Total time: ", time.time() - t_start)
 
 
 ############################################################
@@ -517,38 +520,30 @@ if __name__ == '__main__':
         dataset_train.load_dataset(args.dataset+"\\train", True,False)
         dataset_train.prepare()
 
-
-        # Image Augmentation
-        # Right/Left flip 50% of the time
-        augmentation = imgaug.augmenters.Fliplr(0.5)
-
         # *** This training schedule is an example. Update to your needs ***
 
         # Training - Stage 1
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=3,
-                    layers='heads',
-                    augmentation=augmentation)
+                    epochs=40,
+                    layers='heads')
 
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
         print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=4,
-                    layers='4+',
-                    augmentation=augmentation)
+                    epochs=120,
+                    layers='4+')
 
         # Training - Stage 3
         # Fine tune all layers
         print("Fine tune all layers")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE / 10,
-                    epochs=5,
-                    layers='all',
-                    augmentation=augmentation)
+                    epochs=160,
+                    layers='all')
         run.finish()
 
     elif args.command == "evaluate":
