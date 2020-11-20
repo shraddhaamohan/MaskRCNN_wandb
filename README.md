@@ -12,7 +12,7 @@ We customised this repo to work with a custom dataset, particularly the Food Rec
 
 [Here](https://wandb.ai/jellycrusher/foodr3-community) are the results of our runs.
 
-For a more detailed overview of our process and results see our discourse post on aicrowd or the
+For a more detailed overview of our process and results see our [discourse post](https://discourse.aicrowd.com/t/maskrcnn-integrated-with-wandb-and-direct-submit-from-colab/3961) on aicrowd or the
 "What's on my plate? notebook present [here](https://colab.research.google.com/drive/1D8jC9GdHhCyoGB-8bJogW-lSO21MeTKF?usp=sharing) (Runs on colab!).
 
 There is also a submission repo which you can use to submit models created with appropriate changes made to the config file present in the eval.py file. This repo is accessible [here](https://gitlab.aicrowd.com/shraddhaa_mohan/foodr3-community)
