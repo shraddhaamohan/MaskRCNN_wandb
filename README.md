@@ -8,22 +8,30 @@ This fork of the [matterport/mask_rcnn repo](github.com/matterport/mask-rcnn) wa
 
 We customised this repo to work with a custom dataset, particularly the Food Recognition Challenge Dataset for the competition hosted on AICrowd.
 
-[Here](https://app.wandb.ai/trentwatson1/mask-rcnn) are the results of our runs.
+![wandbexample](assets/wandb_example.gif)
 
-For a more detailed overview of our process and results see our [discourse post](https://medium.com/@connorandtrent/mask-r-cnn-hyperparameter-experiments-with-weights-and-biases-bd2319faae26) or the
-"What's on my plate? notebook present here (Runs on colab!).
+[Here](https://wandb.ai/jellycrusher/foodr3-community) are the results of our runs.
+
+For a more detailed overview of our process and results see our discourse post on aicrowd or the
+"What's on my plate? notebook present [here](https://colab.research.google.com/drive/1D8jC9GdHhCyoGB-8bJogW-lSO21MeTKF?usp=sharing) (Runs on colab!).
+
+There is also a submission repo which you can use to submit models created with appropriate changes made to the config file present in the eval.py file. This repo is accessible [here](https://gitlab.aicrowd.com/shraddhaa_mohan/foodr3-community)
 
 ## Setup
 
 To run this experiment locally create a conda environment named tf-maskrcnn
 
 1. `source activate tf_maskrcnn`
-2. `git clone https://github.com/connorhough/mask_rcnn`
-3. `cd mask_rcnn`
+2. `git clone https://github.com/shraddhaamohan/MaskRCNN_wandb.git`
+3. `cd MaskRCNN_wandb`
 4. `pip install cython`
 5. `pip install -r requirements.txt`
 6. `python setup.py install`
-7. `wandb init`, then follow the init steps
-8. `python samples/food/food.py train --model=coco --dataset=path_to_data_dir`
+7. `cd data`
+   `python create_small.py`
+   `cd ..`
+   (create annotations-small.json for train and val)
+8. `wandb init`, then follow the init steps
+9. `python samples/food/food.py train --model=coco --dataset=path_to_data_dir`
 
 The parameter sweep can be run with `./sweep.sh`
